@@ -1,10 +1,12 @@
 {
   "name": "quadtree-visualizer",
+  "homepage": "https://ndbaker1.github.io/quadtree-visualizer/",
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "deploy": "next build && next export && touch out/.nojekyll && gh-pages -d out -t true",
     "lint": "eslint . ",
     "lint-fix": "eslint . --fix"
   },
