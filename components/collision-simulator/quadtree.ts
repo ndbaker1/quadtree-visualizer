@@ -1,49 +1,7 @@
-import { Rect, Vector2D } from '../../utils/physics'
+import { Rect } from '../../utils/physics'
 
-export class Particle {
-  radius: number
-  position: Vector2D
-  velocity: Vector2D
-  constructor(posX?: number, posY?: number, velX?: number, velY?: number, radius?: number) {
-    this.radius = radius || 10
-    this.position = posX && posY && new Vector2D(posX, posY) || new Vector2D
-    this.velocity = velX && velY && new Vector2D(velX, velY) || new Vector2D
-  }
-  tick(delta: number): void {
-    this.position.add(this.velocity.scale(delta))
-  }
-  collide(particle: Particle): void {
-    if (particle.position.difference(this.position).magnitude() < 2 * this.radius) {
-      this.velocity = this.velocity.reversed()
-      particle.velocity = particle.velocity.reversed()
-    }
-  }
-  collideBounds(boundRect: Rect): void {
-    switch (this.exitingBounds(boundRect)) {
-      case 'TOP':
-      case 'BOTTOM':
-        this.velocity.y *= -1
-        break
-      case 'LEFT':
-      case 'RIGHT':
-        this.velocity.x *= -1
-        break
-      default: break
-    }
-  }
-  intersectsRect(rect: Rect): boolean {
-    return this.position.x - this.radius < rect.x + rect.w
-      && this.position.x + this.radius > rect.x
-      && this.position.y - this.radius < rect.y + rect.h
-      && this.position.y + this.radius > rect.y
-  }
-  exitingBounds(rect: Rect): 'TOP' | 'LEFT' | 'BOTTOM' | 'RIGHT' | 'INSIDE' {
-    if (this.position.x + this.radius > rect.x + rect.w) return 'RIGHT'
-    if (this.position.x - this.radius < rect.x) return 'LEFT'
-    if (this.position.y + this.radius > rect.y + rect.h) return 'BOTTOM'
-    if (this.position.y - this.radius < rect.y) return 'TOP'
-    return 'INSIDE'
-  }
+export interface QuadObject {
+  insideRect: (rect: Rect) => boolean // whether the object in fully contained within a Rect
 }
 
 /**
@@ -57,37 +15,28 @@ export class Particle {
 export class QuadNode {
   public bounds: Rect
   public leaves!: Array<QuadNode> | null
+  public quadObjects = new Array<QuadObject>()
   private depth: number
-  private particles = new Array<Particle>()
-  constructor(rect: Rect, depth: number) {
+  constructor(bounds: Rect, depth: number) {
+    this.bounds = bounds
     this.depth = depth
-    this.bounds = rect
   }
 
   /**
    * cleanup references down the QuadTree recursively
    */
   clear(): void {
-    this.particles = new Array<Particle>()
+    this.quadObjects = new Array<QuadObject>()
     this.leaves?.forEach((leaf: QuadNode) => leaf.clear())
     this.leaves = null
-  }
-
-  processCollisions(): void {
-    for (let i = 0; i < this.particles.length; i++)
-      for (let j = i + 1; j < this.particles.length; j++) {
-        this.particles[i].collide(this.particles[j])
-      }
   }
 
   /**
    * process any updates recursively down the tree
    */
-  process(): void {
-    this.leaves?.forEach((leaf: QuadNode) => {
-      // process collision within quad and with any leaf quads
-      leaf.process()
-    })
+  process(quadNodeProcedure: (quadNode: QuadNode) => void): void {
+    quadNodeProcedure(this)
+    this.leaves?.forEach((leaf: QuadNode) => leaf.process(quadNodeProcedure))
   }
 
   /**
@@ -110,10 +59,10 @@ export class QuadNode {
      * place current particles into newely created groups
      * removes the object from the current array if it fits into another node
      */
-    this.particles.forEach((object: Particle) => {
+    this.quadObjects.forEach((object: QuadObject) => {
       this.leaves?.forEach((leaf: QuadNode) => {
         if (leaf.insert(object))
-          this.particles.splice(this.particles.indexOf(object), 1) // remove from the 
+          this.quadObjects.splice(this.quadObjects.indexOf(object), 1) // remove from the 
       })
     })
   }
@@ -122,9 +71,9 @@ export class QuadNode {
    * Inserts an object into the deepest point of the QuadTree it belongs
    * returns whether the object fit into the bounds of the currently attempted QuadNode 
    */
-  insert(particle: Particle): boolean {
+  insert(quadObject: QuadObject): boolean {
     // test if the quad bounds contains the object
-    if (particle.exitingBounds(this.bounds) !== 'INSIDE')
+    if (!quadObject.insideRect(this.bounds))
       return false
 
     // test if the max tree depth has been reached
@@ -135,14 +84,14 @@ export class QuadNode {
     // first try the leaves 
     if (this.leaves)
       for (const leaf of this.leaves)
-        if (leaf.insert(particle))
+        if (leaf.insert(quadObject))
           return true
 
     // if no leaves, or leaves fail to cover object, push current node
-    this.particles.push(particle)
+    this.quadObjects.push(quadObject)
 
     // test if max capacity for the node has been reached
-    if (!this.leaves && this.particles.length > QuadTree.capacity)
+    if (!this.leaves && this.quadObjects.length > QuadTree.capacity)
       this.subdivide() // divide and redistribute
 
     // object has been place into an array by this point
@@ -156,24 +105,32 @@ export class QuadNode {
  */
 export class QuadTree {
   static readonly maxDepth = 10
-  static readonly capacity = 5
-  bounds: Rect
-  quadRoot: QuadNode
-  objectsRef: Array<Particle>
-  constructor(rect: Rect, objectArray: Array<Particle>) {
+  static readonly capacity = 10
+  public bounds: Rect
+  public quadRoot: QuadNode
+  public quadObjects: Array<QuadObject>
+  constructor(rect: Rect, objectArray: Array<QuadObject>) {
     this.bounds = rect
-    this.objectsRef = objectArray
+    this.quadObjects = objectArray
     this.quadRoot = new QuadNode(this.bounds, 0)
   }
 
-  process(): void {
-    this.quadRoot.clear()
-    this.objectsRef.forEach((particle: Particle) => this.quadRoot.insert(particle))
-    this.quadRoot.process()
+  /**
+   * Updates the QuadTree will most recent object positions and then recursively calls a procedure
+   * @param quadNodeProcedure function to call on each node of the tree
+   */
+  process(quadNodeProcedure: (quadNode: QuadNode) => void): void {
+    this.quadRoot.clear() // refresh the QuadNodes
+    this.quadObjects.forEach((quadObject: QuadObject) => this.quadRoot.insert(quadObject)) // insert updated objects
+    this.quadRoot.process(quadNodeProcedure) // call any user-defined, per-node procedure
   }
 
-  insert(particle: Particle): void {
-    this.objectsRef.push(particle)
-    this.quadRoot.insert(particle)
+  /**
+   * Inserts a QuadObject into the deepest level of the QuadTree it belong
+   * @param quadObject object to insert into the QuadTree
+   */
+  insert(quadObject: QuadObject): void {
+    this.quadObjects.push(quadObject) // update master object array
+    this.quadRoot.insert(quadObject) // descend object into tree
   }
 }

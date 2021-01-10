@@ -1,11 +1,8 @@
 import { Component, createRef, RefObject } from 'react'
-import { QuadNode, QuadTree, Particle } from './quadtree'
-import { Rect } from '../../utils/physics'
+import { QuadNode, QuadTree } from './quadtree'
+import { Rect, CircleBody } from '../../utils/physics'
+import ControlBar from '../control-bar/control-bar'
 
-interface CanvasProps {
-  width: number
-  height: number
-}
 
 const time = () => new Date().getTime()
 let timestamp = time()
@@ -14,31 +11,17 @@ const debug = {
   showQuads: true
 }
 
-export default class CollisionSimulator extends Component<CanvasProps> {
-  private quadTree: QuadTree
+export default class CollisionSimulator extends Component<unknown> {
   private stopLoop: boolean
-  private canvasBounds: Rect
-  private particleArray = new Array<Particle>()
+  private quadTree!: QuadTree
+  private canvasBounds!: Rect
+  private bodies = new Array<CircleBody>()
   private canvasRef: RefObject<HTMLCanvasElement> = createRef()
-  constructor(props: CanvasProps) {
+  private canvasDivRef: RefObject<HTMLDivElement> = createRef()
+  constructor(props: unknown) {
     super(props)
     this.stopLoop = false
-    this.canvasBounds = new Rect(0, 0, this.props.width, this.props.height)
-    this.quadTree = new QuadTree(this.canvasBounds, this.particleArray)
-    for (let i = 0; i < 200; i++) {
-      let radius = 5
-      const speed = 200
-      radius = radius + radius * Math.random() / 10
-      this.quadTree.insert(
-        new Particle(
-          radius + (this.props.width / 4 - 2 * radius) * Math.random(),
-          radius + (this.props.height / 4 - 2 * radius) * Math.random(),
-          (Math.random() - 0.5) * speed,
-          (Math.random() - 0.5) * speed,
-          radius
-        )
-      )
-    }
+
     // bind for context in animation callback
     this.renderLoop = this.renderLoop.bind(this)
   }
@@ -48,14 +31,56 @@ export default class CollisionSimulator extends Component<CanvasProps> {
   }
 
   componentDidMount(): void {
+    window.onresize = () => {
+      if (this.canvasDivRef.current) {
+        // this.canvasDivRef.current.style.width = '600px'
+        if (this.canvasRef.current) {
+          const context = this.canvasRef.current.getContext('2d')
+          if (context) {
+            const dimensions = Math.min(this.canvasDivRef.current.clientWidth, this.canvasDivRef.current.clientHeight)
+            context.canvas.width = dimensions
+            context.canvas.height = dimensions
+            this.canvasBounds = new Rect(0, 0, this.canvasRef.current?.width, this.canvasRef.current?.height)
+            this.quadTree = new QuadTree(this.canvasBounds, this.bodies)
+          }
+        }
+      }
+    }
+    if (this.canvasDivRef.current) {
+      // this.canvasDivRef.current.style.width = '600px'
+      if (this.canvasRef.current) {
+        const context = this.canvasRef.current.getContext('2d')
+        if (context) {
+          const dimensions = Math.min(this.canvasDivRef.current.clientWidth, this.canvasDivRef.current.clientHeight)
+          context.canvas.width = dimensions
+          context.canvas.height = dimensions
+          this.canvasBounds = new Rect(0, 0, this.canvasRef.current?.width, this.canvasRef.current?.height)
+          this.quadTree = new QuadTree(this.canvasBounds, this.bodies)
+        }
+      }
+    }
+    for (let i = 0; i < 200; i++) {
+      let radius = 5
+      const speed = 200
+      radius = radius + radius * Math.random() / 10
+      this.quadTree.insert(
+        new CircleBody(
+          radius + (this.canvasBounds.w / 4 - 2 * radius) * Math.random(),
+          radius + (this.canvasBounds.h / 4 - 2 * radius) * Math.random(),
+          (Math.random() - 0.5) * speed,
+          (Math.random() - 0.5) * speed,
+          radius
+        )
+      )
+    }
     this.renderLoop()
   }
 
   renderSimulation(canvasContext: CanvasRenderingContext2D): void {
     canvasContext.fillStyle = 'white'
-    canvasContext.fillRect(0, 0, this.props.width, this.props.height)
+    canvasContext.fillRect(0, 0, this.canvasBounds.w, this.canvasBounds.h)
     canvasContext.strokeStyle = 'black'
-    this.particleArray.forEach((particle: Particle) => {
+    this.bodies.forEach((particle: CircleBody) => {
       canvasContext.beginPath()
       canvasContext.arc(particle.position.x, particle.position.y, particle.radius, 0, 2 * Math.PI)
       canvasContext.stroke()
@@ -72,9 +97,38 @@ export default class CollisionSimulator extends Component<CanvasProps> {
   }
 
   updateSimulation(delta: number): void {
-    this.particleArray.forEach((particle: Particle) => particle.tick(delta))
-    this.particleArray.forEach((particle: Particle) => particle.collideBounds(this.canvasBounds))
-    this.quadTree.process()
+    this.bodies.forEach((particle: CircleBody) => particle.tick(delta))
+    this.quadTree.process(this.quadTreeProcedure())
+    this.bodies.forEach((particle: CircleBody) => particle.collideBounds(this.canvasBounds))
+  }
+
+  quadTreeProcedure(): ((quadNode: QuadNode) => void) {
+    return function processCollisions(quadNode: QuadNode) {
+      const collisionObject = quadNode.quadObjects as CircleBody[]
+      // process current level collisions
+      for (let i = 0; i < collisionObject.length; i++)
+        for (let j = i + 1; j < collisionObject.length; j++)
+          collisionObject[i].collide(collisionObject[j])
+
+      // process rescursive collisions
+      const processLeafCollisions = (leaves: QuadNode[] | null): void => {
+        leaves?.forEach((leaf: QuadNode) => {
+          collisionObject.forEach((object: CircleBody) => {
+            const leafCollisionObjects = leaf.quadObjects as CircleBody[]
+            leafCollisionObjects.forEach((leafObject: CircleBody) =>
+              object.collide(leafObject)
+            )
+          })
+          // recurse
+          processLeafCollisions(leaf.leaves)
+        })
+      }
+      // call on current leaves
+      processLeafCollisions(quadNode.leaves)
+
+      // recurse on following quad nodes
+      quadNode.leaves?.forEach((leaf: QuadNode) => processCollisions(leaf))
+    }
   }
 
   renderLoop(): void {
@@ -102,16 +156,24 @@ export default class CollisionSimulator extends Component<CanvasProps> {
       }
     }
 
+    // request another frame to tick
     requestAnimationFrame(this.renderLoop)
   }
 
   render(): JSX.Element {
     return (
-      <canvas
-        width={this.props.width}
-        height={this.props.height}
-        ref={this.canvasRef}>
-      </canvas>
+      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+        <div style={{ flexGrow: 1, margin: 25 }}>
+          <div ref={this.canvasDivRef} style={{ width: '100%', height: '100%', display: 'flex' }}>
+            <canvas
+              style={{ margin: 'auto' }}
+              ref={this.canvasRef}
+            >
+            </canvas>
+          </div>
+        </div>
+        <ControlBar />
+      </div>
     )
   }
 }

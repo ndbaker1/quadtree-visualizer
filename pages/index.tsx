@@ -11,12 +11,7 @@ export default function Home(): JSX.Element {
       </Head>
 
       <main>
-        <div className="main-content">
-          <CollisionSimulator
-            width={1024}
-            height={800}
-          />
-        </div>
+        <CollisionSimulator />
       </main>
     </div>
   )
