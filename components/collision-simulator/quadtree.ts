@@ -123,25 +123,29 @@ export class QuadNode {
    * returns whether the object fit into the bounds of the currently attempted QuadNode 
    */
   insert(particle: Particle): boolean {
+    // test if the quad bounds contains the object
     if (particle.exitingBounds(this.bounds) !== 'INSIDE')
       return false
 
+    // test if the max tree depth has been reached
     if (this.depth > QuadTree.maxDepth)
       return false
 
-    if (this.particles.length < QuadTree.capacity) {
-      this.particles.push(particle)
-      return true
-    }
+    // Node is safe to push object into
+    // first try the leaves 
+    if (this.leaves)
+      for (const leaf of this.leaves)
+        if (leaf.insert(particle))
+          return true
 
-    if (!this.leaves)
-      this.subdivide()
-
-    for (const leaf of this.leaves || []) // should always be non-null, so satisfy typescript with [] fallback
-      if (leaf.insert(particle))
-        return true
-
+    // if no leaves, or leaves fail to cover object, push current node
     this.particles.push(particle)
+
+    // test if max capacity for the node has been reached
+    if (!this.leaves && this.particles.length > QuadTree.capacity)
+      this.subdivide() // divide and redistribute
+
+    // object has been place into an array by this point
     return true
   }
 }
