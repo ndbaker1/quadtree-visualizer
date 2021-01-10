@@ -1,5 +1,6 @@
 import { Component, createRef, RefObject } from 'react'
-import { QuadNode, QuadTree, Particle, Rect } from './quadtree'
+import { QuadNode, QuadTree, Particle } from './quadtree'
+import { Rect } from '../../utils/physics'
 
 interface CanvasProps {
   width: number
@@ -16,21 +17,24 @@ const debug = {
 export default class CollisionSimulator extends Component<CanvasProps> {
   private quadTree: QuadTree
   private stopLoop: boolean
-  private particleArray: Array<Particle>
+  private canvasBounds: Rect
+  private particleArray = new Array<Particle>()
   private canvasRef: RefObject<HTMLCanvasElement> = createRef()
   constructor(props: CanvasProps) {
     super(props)
     this.stopLoop = false
-    this.quadTree = new QuadTree(new Rect(0, 0, this.props.width, this.props.height))
-    this.particleArray = this.quadTree.particleArray
-    for (let i = 0; i < 500; i++) {
-      const radius = 10 * Math.random() + 5
+    this.canvasBounds = new Rect(0, 0, this.props.width, this.props.height)
+    this.quadTree = new QuadTree(this.canvasBounds, this.particleArray)
+    for (let i = 0; i < 200; i++) {
+      let radius = 5
+      const speed = 200
+      radius = radius + radius * Math.random() / 10
       this.quadTree.insert(
         new Particle(
-          radius + (this.props.width - 2 * radius) * Math.random(),
-          radius + (this.props.height - 2 * radius) * Math.random(),
-          (Math.random() - 0.5) * 500,
-          (Math.random() - 0.5) * 500,
+          radius + (this.props.width / 4 - 2 * radius) * Math.random(),
+          radius + (this.props.height / 4 - 2 * radius) * Math.random(),
+          (Math.random() - 0.5) * speed,
+          (Math.random() - 0.5) * speed,
           radius
         )
       )
@@ -58,8 +62,8 @@ export default class CollisionSimulator extends Component<CanvasProps> {
     })
 
     function showQuadTrees(quad: QuadNode) {
-      canvasContext.strokeRect(quad.rect.x, quad.rect.y, quad.rect.w, quad.rect.h)
-      quad.leaves.forEach((leaf: QuadNode) => showQuadTrees(leaf))
+      canvasContext.strokeRect(quad.bounds.x, quad.bounds.y, quad.bounds.w, quad.bounds.h)
+      quad.leaves?.forEach((leaf: QuadNode) => showQuadTrees(leaf))
     }
     if (debug.showQuads) {
       canvasContext.strokeStyle = '#bbb'
@@ -69,12 +73,13 @@ export default class CollisionSimulator extends Component<CanvasProps> {
 
   updateSimulation(delta: number): void {
     this.particleArray.forEach((particle: Particle) => particle.tick(delta))
-    this.particleArray.forEach((particle: Particle) => particle.collideBounds(new Rect(0, 0, this.props.width, this.props.height)))
-    this.quadTree.update()
+    this.particleArray.forEach((particle: Particle) => particle.collideBounds(this.canvasBounds))
+    this.quadTree.process()
   }
 
   renderLoop(): void {
-    if (this.stopLoop) return
+    if (this.stopLoop)
+      return
 
     const newtime = time()
     const fps = Math.round(1000 / (newtime - timestamp))

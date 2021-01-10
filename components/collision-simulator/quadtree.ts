@@ -1,29 +1,4 @@
-export class Rect {
-  x: number
-  y: number
-  w: number
-  h: number
-  constructor(x?: number, y?: number, w?: number, h?: number) {
-    this.x = x || 0
-    this.y = y || 0
-    this.w = w || 0
-    this.h = h || 0
-  }
-}
-
-class Vector2D {
-  x: number
-  y: number
-  constructor(x?: number, y?: number) {
-    this.x = x || 0
-    this.y = y || 0
-  }
-  magnitude = () => Math.sqrt(this.x * this.x + this.y * this.y)
-  add = (vector: Vector2D) => { this.x += vector.x; this.y += vector.y }
-  difference = (vector: Vector2D) => new Vector2D(this.x - vector.x, this.y - vector.y)
-  scale = (factor: number) => new Vector2D(this.x * factor, this.y * factor)
-  reversed = () => this.scale(-1)
-}
+import { Rect, Vector2D } from '../../utils/physics'
 
 export class Particle {
   radius: number
@@ -62,22 +37,32 @@ export class Particle {
       && this.position.y - this.radius < rect.y + rect.h
       && this.position.y + this.radius > rect.y
   }
-  exitingBounds(rect: Rect): 'TOP' | 'LEFT' | 'BOTTOM' | 'RIGHT' | 'NONE' {
+  exitingBounds(rect: Rect): 'TOP' | 'LEFT' | 'BOTTOM' | 'RIGHT' | 'INSIDE' {
     if (this.position.x + this.radius > rect.x + rect.w) return 'RIGHT'
     if (this.position.x - this.radius < rect.x) return 'LEFT'
     if (this.position.y + this.radius > rect.y + rect.h) return 'BOTTOM'
     if (this.position.y - this.radius < rect.y) return 'TOP'
-    return 'NONE'
+    return 'INSIDE'
   }
 }
 
+
 export class QuadNode {
-  static readonly capacity = 3
-  rect = new Rect
-  leaves = new Array<QuadNode>()
-  particles = new Array<Particle>()
-  constructor(rect: Rect) {
-    this.rect = rect
+  static readonly maxDepth = 10
+  static readonly capacity = 5
+  public bounds: Rect
+  public leaves!: Array<QuadNode> | null
+  private depth: number
+  private particles = new Array<Particle>()
+  constructor(rect: Rect, depth: number) {
+    this.depth = depth
+    this.bounds = rect
+  }
+
+  clear(): void {
+    this.particles = new Array<Particle>()
+    this.leaves?.forEach((leaf: QuadNode) => leaf.clear())
+    this.leaves = null
   }
 
   processCollisions(): void {
@@ -87,24 +72,42 @@ export class QuadNode {
       }
   }
 
-  update(): void {
-    this.processCollisions()
-    this.leaves.forEach((leaf: QuadNode) => leaf.update())
+  process(): void {
+    this.leaves?.forEach((leaf: QuadNode) => {
+      // process collision within quad and with any leaf quads
+      leaf.process()
+    })
   }
 
   subdivide(): void {
-    const midW = this.rect.w / 2
-    const midH = this.rect.h / 2
+    const midW = this.bounds.w / 2
+    const midH = this.bounds.h / 2
+    const newDepth = this.depth + 1
     this.leaves = [
-      new QuadNode(new Rect(this.rect.x, this.rect.y, midW, midH)),
-      new QuadNode(new Rect(this.rect.x + midW, this.rect.y, midW, midH)),
-      new QuadNode(new Rect(this.rect.x, this.rect.y + midH, midW, midH)),
-      new QuadNode(new Rect(this.rect.x + midW, this.rect.y + midH, midW, midH))
+      new QuadNode(new Rect(this.bounds.x, this.bounds.y, midW, midH), newDepth),
+      new QuadNode(new Rect(this.bounds.x + midW, this.bounds.y, midW, midH), newDepth),
+      new QuadNode(new Rect(this.bounds.x, this.bounds.y + midH, midW, midH), newDepth),
+      new QuadNode(new Rect(this.bounds.x + midW, this.bounds.y + midH, midW, midH), newDepth)
     ]
+
+    /**
+     * place current particles into newely created groups
+     */
+    const temp = this.particles
+    this.particles = []
+    for (const particle of temp) {
+      for (const leaf of this.leaves)
+        if (leaf.insert(particle))
+          continue
+      this.particles.push(particle)
+    }
   }
 
   insert(particle: Particle): boolean {
-    if (!particle.intersectsRect(this.rect))
+    if (particle.exitingBounds(this.bounds) !== 'INSIDE')
+      return false
+
+    if (this.depth > QuadNode.maxDepth)
       return false
 
     if (this.particles.length < QuadNode.capacity) {
@@ -112,33 +115,37 @@ export class QuadNode {
       return true
     }
 
-    if (this.leaves.length === 0)
+    if (!this.leaves)
       this.subdivide()
 
-    let inserted = false
-    for (const leaf of this.leaves)
-      if (leaf.insert(particle))
-        inserted = true
+    if (this.leaves)
+      for (const leaf of this.leaves)
+        if (leaf.insert(particle))
+          return true
 
-    return inserted
+    this.particles.push(particle)
+    return true
   }
 }
 
 export class QuadTree {
-  particleArray = new Array<Particle>()
+  bounds: Rect
   quadRoot: QuadNode
-  constructor(rect: Rect) {
-    this.quadRoot = new QuadNode(rect)
+  objectsRef: Array<Particle>
+  constructor(rect: Rect, objectArray: Array<Particle>) {
+    this.bounds = rect
+    this.objectsRef = objectArray
+    this.quadRoot = new QuadNode(this.bounds, 0)
   }
 
-  update(): void {
-    this.quadRoot.leaves = []
-    this.particleArray.forEach((particle: Particle) => this.quadRoot.insert(particle))
-    this.quadRoot.update()
+  process(): void {
+    this.quadRoot.clear()
+    this.objectsRef.forEach((particle: Particle) => this.quadRoot.insert(particle))
+    this.quadRoot.process()
   }
 
   insert(particle: Particle): void {
-    this.particleArray.push(particle)
+    this.objectsRef.push(particle)
     this.quadRoot.insert(particle)
   }
 }
