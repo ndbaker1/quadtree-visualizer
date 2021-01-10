@@ -46,10 +46,15 @@ export class Particle {
   }
 }
 
-
+/**
+ * Node of a QuadTree
+ * carries data about its:
+ *  - bounds
+ *  - depth
+ *  - children
+ *  - containing objects
+ */
 export class QuadNode {
-  static readonly maxDepth = 10
-  static readonly capacity = 5
   public bounds: Rect
   public leaves!: Array<QuadNode> | null
   private depth: number
@@ -59,6 +64,9 @@ export class QuadNode {
     this.bounds = rect
   }
 
+  /**
+   * cleanup references down the QuadTree recursively
+   */
   clear(): void {
     this.particles = new Array<Particle>()
     this.leaves?.forEach((leaf: QuadNode) => leaf.clear())
@@ -72,6 +80,9 @@ export class QuadNode {
       }
   }
 
+  /**
+   * process any updates recursively down the tree
+   */
   process(): void {
     this.leaves?.forEach((leaf: QuadNode) => {
       // process collision within quad and with any leaf quads
@@ -79,7 +90,12 @@ export class QuadNode {
     })
   }
 
+  /**
+   * Initialize the sub-quads of the current Node,
+   * and test if any object fit into a deeper quad
+   */
   subdivide(): void {
+    // calculate new bounds of sub-quads
     const midW = this.bounds.w / 2
     const midH = this.bounds.h / 2
     const newDepth = this.depth + 1
@@ -92,25 +108,28 @@ export class QuadNode {
 
     /**
      * place current particles into newely created groups
+     * removes the object from the current array if it fits into another node
      */
-    const temp = this.particles
-    this.particles = []
-    for (const particle of temp) {
-      for (const leaf of this.leaves)
-        if (leaf.insert(particle))
-          continue
-      this.particles.push(particle)
-    }
+    this.particles.forEach((object: Particle) => {
+      this.leaves?.forEach((leaf: QuadNode) => {
+        if (leaf.insert(object))
+          this.particles.splice(this.particles.indexOf(object), 1) // remove from the 
+      })
+    })
   }
 
+  /**
+   * Inserts an object into the deepest point of the QuadTree it belongs
+   * returns whether the object fit into the bounds of the currently attempted QuadNode 
+   */
   insert(particle: Particle): boolean {
     if (particle.exitingBounds(this.bounds) !== 'INSIDE')
       return false
 
-    if (this.depth > QuadNode.maxDepth)
+    if (this.depth > QuadTree.maxDepth)
       return false
 
-    if (this.particles.length < QuadNode.capacity) {
+    if (this.particles.length < QuadTree.capacity) {
       this.particles.push(particle)
       return true
     }
@@ -118,17 +137,22 @@ export class QuadNode {
     if (!this.leaves)
       this.subdivide()
 
-    if (this.leaves)
-      for (const leaf of this.leaves)
-        if (leaf.insert(particle))
-          return true
+    for (const leaf of this.leaves || []) // should always be non-null, so satisfy typescript with [] fallback
+      if (leaf.insert(particle))
+        return true
 
     this.particles.push(particle)
     return true
   }
 }
 
+/**
+ * Root Reference for a QuadTree
+ * primary interface for operations
+ */
 export class QuadTree {
+  static readonly maxDepth = 10
+  static readonly capacity = 5
   bounds: Rect
   quadRoot: QuadNode
   objectsRef: Array<Particle>
