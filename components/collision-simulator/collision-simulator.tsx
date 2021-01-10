@@ -31,34 +31,8 @@ export default class CollisionSimulator extends Component<unknown> {
   }
 
   componentDidMount(): void {
-    window.onresize = () => {
-      if (this.canvasDivRef.current) {
-        // this.canvasDivRef.current.style.width = '600px'
-        if (this.canvasRef.current) {
-          const context = this.canvasRef.current.getContext('2d')
-          if (context) {
-            const dimensions = Math.min(this.canvasDivRef.current.clientWidth, this.canvasDivRef.current.clientHeight)
-            context.canvas.width = dimensions
-            context.canvas.height = dimensions
-            this.canvasBounds = new Rect(0, 0, this.canvasRef.current?.width, this.canvasRef.current?.height)
-            this.quadTree = new QuadTree(this.canvasBounds, this.bodies)
-          }
-        }
-      }
-    }
-    if (this.canvasDivRef.current) {
-      // this.canvasDivRef.current.style.width = '600px'
-      if (this.canvasRef.current) {
-        const context = this.canvasRef.current.getContext('2d')
-        if (context) {
-          const dimensions = Math.min(this.canvasDivRef.current.clientWidth, this.canvasDivRef.current.clientHeight)
-          context.canvas.width = dimensions
-          context.canvas.height = dimensions
-          this.canvasBounds = new Rect(0, 0, this.canvasRef.current?.width, this.canvasRef.current?.height)
-          this.quadTree = new QuadTree(this.canvasBounds, this.bodies)
-        }
-      }
-    }
+    window.onresize = () => this.setupQuadTree()
+    this.setupQuadTree()
     for (let i = 0; i < 200; i++) {
       let radius = 5
       const speed = 200
@@ -74,6 +48,21 @@ export default class CollisionSimulator extends Component<unknown> {
       )
     }
     this.renderLoop()
+  }
+
+  setupQuadTree(): void {
+    if (this.canvasDivRef?.current) {
+      if (this.canvasRef.current) {
+        const context = this.canvasRef.current.getContext('2d')
+        if (context) {
+          const dimensions = Math.min(this.canvasDivRef.current.clientWidth, this.canvasDivRef.current.clientHeight)
+          context.canvas.width = dimensions
+          context.canvas.height = dimensions
+          this.canvasBounds = new Rect(0, 0, this.canvasRef.current?.width, this.canvasRef.current?.height)
+          this.quadTree = new QuadTree(this.canvasBounds, this.bodies)
+        }
+      }
+    }
   }
 
   renderSimulation(canvasContext: CanvasRenderingContext2D): void {
