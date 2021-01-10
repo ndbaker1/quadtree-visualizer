@@ -1,5 +1,3 @@
-import { pathToFileURL } from 'url'
-
 export class Rect {
   x: number
   y: number
