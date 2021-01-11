@@ -1,18 +1,34 @@
+import { Component, createRef, RefObject } from 'react'
 import Head from 'next/head'
+import styles from '../styles/Home.module.scss'
+import SimulationCanvas from '../components/simulation-canvas'
+import ControlBar from '../components/control-bar'
 
-import CollisionSimulator from '../components/collision-simulator/collision-simulator'
+export default class Home extends Component {
+  simulationCanvasRef: RefObject<SimulationCanvas> = createRef()
 
-export default function Home(): JSX.Element {
-  return (
-    <div>
-      <Head>
-        <title>Quadtree Visualizer</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+  componentDidMount(): void {
+    for (let i = 0; i < 200; i++) {
+      this.simulationCanvasRef.current?.addBody(5)
+    }
+  }
 
-      <main>
-        <CollisionSimulator />
-      </main>
-    </div>
-  )
+  render(): JSX.Element {
+    return (
+      <div>
+        <Head>
+          <title>Quadtree Visualizer</title>
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <main>
+          <div className={styles.simulation_container}>
+            <SimulationCanvas ref={this.simulationCanvasRef} />
+            <ControlBar>
+            </ControlBar>
+          </div>
+        </main>
+      </div>
+    )
+  }
 }

@@ -1,4 +1,4 @@
-import { QuadObject } from '../components/collision-simulator/quadtree'
+import { QuadObject } from './quadtree'
 
 export class Rect {
   x: number

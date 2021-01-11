@@ -1,0 +1,21 @@
+$color1: #1a1a2e;
+$color2: #52057b;
+$color3: #892cdc;
+$color4: #bc6ff1;
+
+:export {
+  color1: $color1;
+  color2: $color2;
+  color3: $color3;
+  color4: $color4;
+}
+
+.simulation_container {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "canvas";
+  width: 100%;
+  height: 100%;
+  background-color: $color1;
+}

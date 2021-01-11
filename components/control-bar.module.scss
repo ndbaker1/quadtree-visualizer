@@ -1,0 +1,15 @@
+@import "../styles/Home.module.scss";
+
+.control_bar {
+  display: none;
+  flex-direction: row;
+  padding: 1rem;
+  background-color: $color3;
+
+  div {
+    display: flex;
+    justify-content: center;
+    margin: auto;
+    flex-grow: 1;
+  }
+}

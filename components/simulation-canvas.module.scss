@@ -1,0 +1,18 @@
+@import "../styles/Home.module.scss";
+
+.canvas_container {
+  display: flex;
+  padding: 25px;
+
+  .canvas_wrapper {
+    display: flex;
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    canvas {
+      margin: auto;
+    }
+  }
+}

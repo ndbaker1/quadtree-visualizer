@@ -1,4 +1,4 @@
-import { Rect } from '../../utils/physics'
+import { Rect } from './physics'
 
 export interface QuadObject {
   insideRect: (rect: Rect) => boolean // whether the object in fully contained within a Rect

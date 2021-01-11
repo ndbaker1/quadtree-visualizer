@@ -1,17 +1,15 @@
-import { Component, createRef, RefObject } from 'react'
-import { QuadNode, QuadTree } from './quadtree'
-import { Rect, CircleBody } from '../../utils/physics'
-import ControlBar from '../control-bar/control-bar'
+import { Component, createRef, RefObject, MouseEvent } from 'react'
+import styles from './simulation-canvas.module.scss'
 
+import { QuadNode, QuadTree } from '../utils/quadtree'
+import { Rect, CircleBody, Vector2D } from '../utils/physics'
 
 const time = () => new Date().getTime()
-let timestamp = time()
-const debug = {
-  showFPS: true,
-  showQuads: true
-}
 
-export default class CollisionSimulator extends Component<unknown> {
+export default class SimulationCanvas extends Component<unknown> {
+  private timestamp = time()
+  private debug = { showFPS: true, showQuads: true }
+  private dragVector = { start: new Vector2D, end: new Vector2D, isDragging: false }
   private stopLoop: boolean
   private quadTree!: QuadTree
   private canvasBounds!: Rect
@@ -21,9 +19,23 @@ export default class CollisionSimulator extends Component<unknown> {
   constructor(props: unknown) {
     super(props)
     this.stopLoop = false
-
     // bind for context in animation callback
     this.renderLoop = this.renderLoop.bind(this)
+    this.mouseDown = this.mouseDown.bind(this)
+    this.mouseUp = this.mouseUp.bind(this)
+    this.mouseDrag = this.mouseDrag.bind(this)
+  }
+
+  public addBody(radius: number, velocity?: Vector2D, position?: Vector2D): void {
+    this.quadTree.insert(
+      new CircleBody(
+        position?.x || radius + (this.canvasBounds.w - 2 * radius) * Math.random(),
+        position?.y || radius + (this.canvasBounds.h - 2 * radius) * Math.random(),
+        velocity?.x || 100 * (Math.random() - 0.5),
+        velocity?.y || 100 * (Math.random() - 0.5),
+        radius
+      )
+    )
   }
 
   componentWillUnmount(): void {
@@ -33,20 +45,6 @@ export default class CollisionSimulator extends Component<unknown> {
   componentDidMount(): void {
     window.onresize = () => this.setupQuadTree()
     this.setupQuadTree()
-    for (let i = 0; i < 200; i++) {
-      let radius = 5
-      const speed = 200
-      radius = radius + radius * Math.random() / 10
-      this.quadTree.insert(
-        new CircleBody(
-          radius + (this.canvasBounds.w / 4 - 2 * radius) * Math.random(),
-          radius + (this.canvasBounds.h / 4 - 2 * radius) * Math.random(),
-          (Math.random() - 0.5) * speed,
-          (Math.random() - 0.5) * speed,
-          radius
-        )
-      )
-    }
     this.renderLoop()
   }
 
@@ -66,21 +64,28 @@ export default class CollisionSimulator extends Component<unknown> {
   }
 
   renderSimulation(canvasContext: CanvasRenderingContext2D): void {
-    canvasContext.fillStyle = 'white'
+    canvasContext.fillStyle = styles.color1
     canvasContext.fillRect(0, 0, this.canvasBounds.w, this.canvasBounds.h)
-    canvasContext.strokeStyle = 'black'
+    canvasContext.strokeStyle = styles.color4
     this.bodies.forEach((particle: CircleBody) => {
       canvasContext.beginPath()
       canvasContext.arc(particle.position.x, particle.position.y, particle.radius, 0, 2 * Math.PI)
       canvasContext.stroke()
     })
+    if (this.dragVector.isDragging) {
+      canvasContext.beginPath()
+      canvasContext.moveTo(this.dragVector.start.x, this.dragVector.start.y)
+      canvasContext.lineTo(this.dragVector.end.x, this.dragVector.end.y)
+      canvasContext.stroke()
+    }
+
 
     function showQuadTrees(quad: QuadNode) {
       canvasContext.strokeRect(quad.bounds.x, quad.bounds.y, quad.bounds.w, quad.bounds.h)
       quad.leaves?.forEach((leaf: QuadNode) => showQuadTrees(leaf))
     }
-    if (debug.showQuads) {
-      canvasContext.strokeStyle = '#bbb'
+    if (this.debug.showQuads) {
+      canvasContext.strokeStyle = styles.color3
       showQuadTrees(this.quadTree.quadRoot)
     }
   }
@@ -125,8 +130,8 @@ export default class CollisionSimulator extends Component<unknown> {
       return
 
     const newtime = time()
-    const fps = Math.round(1000 / (newtime - timestamp))
-    timestamp = newtime
+    const fps = Math.round(1000 / (newtime - this.timestamp))
+    this.timestamp = newtime
 
     this.updateSimulation(1 / fps)
 
@@ -136,10 +141,10 @@ export default class CollisionSimulator extends Component<unknown> {
     if (context) {
       this.renderSimulation(context)
 
-      if (debug.showFPS) {
+      if (this.debug.showFPS) {
         context.save()
         context.font = '25px Arial'
-        context.fillStyle = 'grey'
+        context.fillStyle = styles.color4
         context.fillText('FPS: ' + fps, 10, 30)
         context.restore()
       }
@@ -149,19 +154,29 @@ export default class CollisionSimulator extends Component<unknown> {
     requestAnimationFrame(this.renderLoop)
   }
 
+  mouseDown(e: MouseEvent): void {
+    if (this.canvasRef.current) {
+      this.dragVector.start = this.dragVector.end = new Vector2D(e.clientX - this.canvasRef.current?.offsetLeft, e.clientY - this.canvasRef.current?.offsetTop)
+      this.dragVector.isDragging = true
+    }
+  }
+
+  mouseDrag(e: MouseEvent): void {
+    if (this.dragVector.isDragging && this.canvasRef.current)
+      this.dragVector.end = new Vector2D(e.clientX - this.canvasRef.current?.offsetLeft, e.clientY - this.canvasRef.current?.offsetTop)
+  }
+
+  mouseUp(): void {
+    this.addBody(10, this.dragVector.end.difference(this.dragVector.start), this.dragVector.start)
+    this.dragVector.isDragging = false
+  }
+
   render(): JSX.Element {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
-        <div style={{ flexGrow: 1, margin: 25 }}>
-          <div ref={this.canvasDivRef} style={{ width: '100%', height: '100%', display: 'flex' }}>
-            <canvas
-              style={{ margin: 'auto' }}
-              ref={this.canvasRef}
-            >
-            </canvas>
-          </div>
+      <div className={styles.canvas_container}>
+        <div ref={this.canvasDivRef} className={styles.canvas_wrapper}>
+          <canvas ref={this.canvasRef} onMouseDown={this.mouseDown} onMouseUp={this.mouseUp} onMouseMove={this.mouseDrag} />
         </div>
-        <ControlBar />
       </div>
     )
   }
