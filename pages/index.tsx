@@ -1,32 +1,10 @@
-import { ChangeEvent, Component, createRef, RefObject } from 'react'
+import { Component, createRef, RefObject } from 'react'
 import Head from 'next/head'
 import styles from '../styles/Home.module.scss'
+import ProjectHeader from '../components/project-header'
 import SimulationCanvas from '../components/simulation-canvas'
-import ControlBar from '../components/control-bar'
-import { TextField, Button, Checkbox, FormControlLabel } from '@material-ui/core'
+import ControlBar, { ActionButton, DataConfig, DataToggle } from '../components/control-bar'
 import { QuadTree } from '../utils/quadtree'
-
-function ActionButton(props: { onClick: () => void, label: string }): JSX.Element {
-  return (
-    <Button onClick={props.onClick}>{props.label}</Button>
-  )
-}
-
-function DataConfig<T>(props: { value: T, label: string, updateFunc: (value: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => void }): JSX.Element {
-  return (
-    <form autoComplete="off">
-      <TextField onChange={props.updateFunc} defaultValue={props.value} label={props.label} variant="filled" inputMode="numeric" />
-    </form>
-  )
-}
-
-function DataToggle(props: { value: boolean, label: string, updateFunc: (event: ChangeEvent<HTMLInputElement>, checked: boolean) => void }): JSX.Element {
-  return (
-    <FormControlLabel control={
-      <Checkbox checked={props.value} onChange={props.updateFunc} />
-    } label={props.label} />
-  )
-}
 
 interface StateFields { radius: number, count: number, showFPS: boolean, showQuads: boolean }
 
@@ -34,12 +12,25 @@ export default class Home extends Component<unknown, StateFields> {
   private simulationCanvasRef: RefObject<SimulationCanvas> = createRef()
   constructor(props: unknown) {
     super(props)
-    this.state = { radius: 5, count: 1, showFPS: true, showQuads: true }
-    this.simulationCanvasRef.current?.updateVars({ showFPS: this.state.showFPS, showQuads: this.state.showQuads })
+    this.state = {
+      radius: 10,
+      count: 1,
+      showFPS: true,
+      showQuads: true
+    }
   }
+
   componentDidMount(): void {
-    for (let i = 0; i < 200; i++)
-      this.simulationCanvasRef.current?.addBody(5)
+    // attempt to sync simulation vars with container flags
+    this.simulationCanvasRef.current?.updateVars({ showFPS: this.state.showFPS, showQuads: this.state.showQuads })
+
+    // calculate a radius that is relatively the same retio for all windows
+    const radius = Math.ceil(Math.min(window.innerWidth / 500, window.innerHeight / 500))
+    // 
+    this.setState({ radius: radius, count: 200 }, () => {
+      for (let i = 0; i < this.state.count; i++)
+        this.simulationCanvasRef.current?.addBody(this.state.radius)
+    })
   }
 
   render(): JSX.Element {
@@ -52,24 +43,25 @@ export default class Home extends Component<unknown, StateFields> {
 
         <main>
           <div className={styles.simulation_container}>
+            <ProjectHeader />
             <SimulationCanvas ref={this.simulationCanvasRef} spawnRadius={this.state.radius} />
             <ControlBar>
               <DataConfig label="Node Capacity" value={QuadTree.capacity}
-                updateFunc={(value) => this.simulationCanvasRef.current?.updateVars({ capacity: +value.target.value })} />
+                updateFunc={(value) => { this.simulationCanvasRef.current?.updateVars({ capacity: +value.target.value }); this.forceUpdate() }} />
               <DataConfig label="Maxmimum Tree Depth" value={QuadTree.maxDepth}
-                updateFunc={(value) => this.simulationCanvasRef.current?.updateVars({ maxDepth: +value.target.value })} />
+                updateFunc={(value) => { this.simulationCanvasRef.current?.updateVars({ maxDepth: +value.target.value }); this.forceUpdate() }} />
               <DataConfig label="Radius" value={this.state.radius}
                 updateFunc={(value) => this.setState({ radius: +value.target.value })} />
               <DataConfig label="Spawn Count" value={this.state.count}
                 updateFunc={(value) => this.setState({ count: +value.target.value })} />
-              <ActionButton label="Create Bodies"
+              <ActionButton label="Spawn Bodies"
                 onClick={() => { for (let i = 0; i < this.state.count; i++) this.simulationCanvasRef.current?.addBody(this.state.radius) }} />
               <ActionButton label="Clear Bodies"
                 onClick={() => this.simulationCanvasRef.current?.clearBodies()} />
-              <DataToggle label="Show FPS" value={this.state.showFPS}
-                updateFunc={(_, checked) => { this.setState({ showFPS: checked }); this.simulationCanvasRef.current?.updateVars({ showFPS: checked }) }} />
-              <DataToggle label="Show Quads" value={this.state.showQuads}
-                updateFunc={(_, checked) => { this.setState({ showQuads: checked }); this.simulationCanvasRef.current?.updateVars({ showQuads: checked }) }} />
+              <DataToggle label="Show FPS" value={this.simulationCanvasRef.current?.debug.showFPS}
+                updateFunc={(_, checked) => { this.simulationCanvasRef.current?.updateVars({ showFPS: checked }); this.forceUpdate() }} />
+              <DataToggle label="Show Quads" value={this.simulationCanvasRef.current?.debug.showQuads}
+                updateFunc={(_, checked) => { this.setState({ showQuads: checked }); this.simulationCanvasRef.current?.updateVars({ showQuads: checked }); this.forceUpdate() }} />
             </ControlBar>
           </div>
         </main>

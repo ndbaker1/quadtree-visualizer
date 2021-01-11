@@ -3,7 +3,7 @@
 .control_bar {
   > div {
     position: fixed;
-    top: 20px;
+    top: $navPadTop;
     left: 0;
     z-index: 100;
     background-color: $color3;
@@ -14,40 +14,49 @@
 
   .minimized {
     cursor: pointer;
-    height: 60px;
-    width: $tabWidth;
+    height: $tabSize;
+    width: $tabSize;
     display: flex;
     justify-content: center;
     align-items: center;
+    > svg {
+      transition: color 0.5s ease;
+      &:hover {
+        color: $color2;
+      }
+    }
   }
 
   .panel {
     width: 200px;
+    padding: 14px;
+    padding-top: 0;
     display: flex;
     flex-direction: column;
 
     #top_control {
       width: 100%;
       height: 60px;
-      > div {
-        // buttons on the top control
-        cursor: pointer;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      > p {
+        font-size: 1.25rem;
+        font-weight: 600;
         width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: $color3;
-        transition: background-color 0.5s ease;
+      }
+      > svg {
+        cursor: pointer;
+        transition: color 0.5s ease;
         &:hover {
-          background-color: $color2;
+          color: $color2;
         }
       }
     }
 
     #options {
-      padding: 10px;
-      padding-bottom: 40px;
+      padding-top: 10px;
+      padding-bottom: 20px;
       height: 100%;
       display: flex;
       flex-direction: column;

@@ -1,0 +1,21 @@
+@import "../styles/Home.module.scss";
+
+.header_container {
+  width: 100%;
+  display: flex;
+  color: $color4;
+  padding: $navPadTop;
+  min-height: $tabSize;
+  justify-content: center;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    > #title {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+  }
+}

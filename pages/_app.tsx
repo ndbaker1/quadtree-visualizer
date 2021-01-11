@@ -1,14 +1,20 @@
 import { createMuiTheme, ThemeProvider } from '@material-ui/core'
 import { AppProps } from 'next/app'
 import '../styles/globals.scss'
+import styles from '../styles/theme.module.scss'
 
 const theme = createMuiTheme({
   palette: {
     primary: {
-      main: '#000'
+      main: styles.color1
+
     },
     secondary: {
-      main: '#000'
+      main: styles.color1
+    },
+    text: {
+      primary: styles.color1,
+      secondary: styles.color1
     }
   }
 })

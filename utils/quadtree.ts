@@ -104,8 +104,8 @@ export class QuadNode {
  * primary interface for operations
  */
 export class QuadTree {
-  static maxDepth = Math.ceil(Math.log2(1000 / 5) / 2) // default for as small as 5 pixels on a 1000x1000 grid
-  static capacity = 10
+  static maxDepth = Math.ceil(Math.log2(1000 / 5) / 2) + 1// default for as small as 5 pixels on a 1000x1000 grid
+  static capacity = 5
   public bounds: Rect
   public quadRoot: QuadNode
   public quadObjects: Array<QuadObject>
