@@ -62,7 +62,6 @@ export class CircleBody implements QuadObject {
         this.velocity = this.velocity.rotated(2 * ((Math.PI / 2) - this.velocity.angleBetween(collisionVector)))
         circle.velocity = circle.velocity.rotated(2 * ((Math.PI / 2) - circle.velocity.angleBetween(collisionVector.reversed())))
       }
-
     }
   }
   collideBounds(boundRect: Rect): void {
