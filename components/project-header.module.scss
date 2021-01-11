@@ -7,6 +7,11 @@
   padding: $navPadTop;
   min-height: $tabSize;
   justify-content: center;
+  text-align: center;
+
+  @media screen and (max-width: 420px) {
+    padding-top: $navPadTop * 2 + $tabSize;
+  }
 
   > div {
     display: flex;
