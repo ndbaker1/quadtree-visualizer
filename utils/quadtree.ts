@@ -76,9 +76,9 @@ export class QuadNode {
     if (!quadObject.insideRect(this.bounds))
       return false
 
-    // test if the max tree depth has been reached
-    if (this.depth > QuadTree.maxDepth)
-      return false
+    // directly insert if max depth is reached
+    if (this.depth >= QuadTree.maxDepth)
+      return !!this.quadObjects.push(quadObject) // length should always be non-zero for push -> truthy
 
     // Node is safe to push object into
     // first try the leaves 
@@ -104,8 +104,8 @@ export class QuadNode {
  * primary interface for operations
  */
 export class QuadTree {
-  static readonly maxDepth = 10
-  static readonly capacity = 10
+  static maxDepth = Math.ceil(Math.log2(1000 / 5) / 2) // default for as small as 5 pixels on a 1000x1000 grid
+  static capacity = 10
   public bounds: Rect
   public quadRoot: QuadNode
   public quadObjects: Array<QuadObject>

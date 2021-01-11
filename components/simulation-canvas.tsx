@@ -6,9 +6,10 @@ import { Rect, CircleBody, Vector2D } from '../utils/physics'
 
 const time = () => new Date().getTime()
 
-export default class SimulationCanvas extends Component<unknown> {
+interface SimulationCanvasProps { spawnRadius: number }
+export default class SimulationCanvas extends Component<SimulationCanvasProps> {
+  public debug = { showFPS: true, showQuads: true }
   private timestamp = time()
-  private debug = { showFPS: true, showQuads: true }
   private dragVector = { start: new Vector2D, end: new Vector2D, isDragging: false }
   private stopLoop: boolean
   private quadTree!: QuadTree
@@ -16,7 +17,7 @@ export default class SimulationCanvas extends Component<unknown> {
   private bodies = new Array<CircleBody>()
   private canvasRef: RefObject<HTMLCanvasElement> = createRef()
   private canvasDivRef: RefObject<HTMLDivElement> = createRef()
-  constructor(props: unknown) {
+  constructor(props: SimulationCanvasProps) {
     super(props)
     this.stopLoop = false
     // bind for context in animation callback
@@ -24,6 +25,22 @@ export default class SimulationCanvas extends Component<unknown> {
     this.mouseDown = this.mouseDown.bind(this)
     this.mouseUp = this.mouseUp.bind(this)
     this.mouseDrag = this.mouseDrag.bind(this)
+  }
+
+  public updateVars(vars: { capacity?: number, maxDepth?: number, showFPS?: boolean, showQuads?: boolean }): void {
+    if ('capacity' in vars)
+      QuadTree.capacity = vars.capacity === undefined ? 1 : vars.capacity
+    if ('maxDepth' in vars)
+      QuadTree.maxDepth = vars.maxDepth === undefined ? 1 : vars.maxDepth
+    if ('showFPS' in vars)
+      this.debug.showFPS = !!vars.showFPS
+    if ('showQuads' in vars)
+      this.debug.showQuads = !!vars.showQuads
+  }
+
+  public clearBodies(): void {
+    this.bodies = new Array<CircleBody>()
+    this.quadTree.quadObjects = this.bodies
   }
 
   public addBody(radius: number, velocity?: Vector2D, position?: Vector2D): void {
@@ -167,7 +184,7 @@ export default class SimulationCanvas extends Component<unknown> {
   }
 
   mouseUp(): void {
-    this.addBody(10, this.dragVector.end.difference(this.dragVector.start), this.dragVector.start)
+    this.addBody(this.props.spawnRadius, this.dragVector.end.difference(this.dragVector.start), this.dragVector.start)
     this.dragVector.isDragging = false
   }
 

@@ -1,7 +1,6 @@
-$color1: #1a1a2e;
-$color2: #52057b;
-$color3: #892cdc;
-$color4: #bc6ff1;
+@import "./theme.module.scss";
+
+$tabWidth: 60px;
 
 :export {
   color1: $color1;

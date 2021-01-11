@@ -3,6 +3,7 @@
 .canvas_container {
   display: flex;
   padding: 25px;
+  padding-left: $tabWidth + 10;
 
   .canvas_wrapper {
     display: flex;

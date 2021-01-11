@@ -53,13 +53,16 @@ export class CircleBody implements QuadObject {
     const collisionVector = circle.position.difference(this.position)
     if (collisionVector.magnitude() < this.radius + circle.radius) {
       // TODO - slighty working but defferred
+      const softCollision = true
+      if (softCollision) {
+        const computeScale = (mass: number, velocityVec: Vector2D): number => (velocityVec.magnitude() / 10)
+        this.velocity.add(collisionVector.normalized().scale(-computeScale(circle.mass, circle.velocity)))
+        circle.velocity.add(collisionVector.normalized().scale(computeScale(this.mass, this.velocity)))
+      } else {
+        this.velocity = this.velocity.rotated(2 * ((Math.PI / 2) - this.velocity.angleBetween(collisionVector)))
+        circle.velocity = circle.velocity.rotated(2 * ((Math.PI / 2) - circle.velocity.angleBetween(collisionVector.reversed())))
+      }
 
-      // const computeScale = (mass: number, velocityVec: Vector2D): number => (mass) ^ 5
-      // this.velocity.add(collisionVector.normalized().scale(-computeScale(circle.mass, circle.velocity)))
-      // circle.velocity.add(collisionVector.normalized().scale(computeScale(this.mass, this.velocity)))
-
-      // this.velocity = this.velocity.rotated(2 * ((Math.PI / 2) - this.velocity.angleBetween(differenceVector)))
-      // circle.velocity = circle.velocity.rotated(2 * ((Math.PI / 2) - circle.velocity.angleBetween(differenceVector.reversed())))
     }
   }
   collideBounds(boundRect: Rect): void {
