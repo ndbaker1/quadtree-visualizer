@@ -25,9 +25,9 @@ export default class Home extends Component<unknown, StateFields> {
     this.simulationCanvasRef.current?.updateVars({ showFPS: this.state.showFPS, showQuads: this.state.showQuads })
 
     // calculate a radius that is relatively the same retio for all windows
-    const radius = Math.ceil(Math.min(window.innerWidth / 500, window.innerHeight / 500))
+    const radius = Math.ceil(Math.min(window.innerWidth / 200, window.innerHeight / 200))
     // 
-    this.setState({ radius: radius, count: 200 }, () => {
+    this.setState({ radius: radius, count: 100 }, () => {
       for (let i = 0; i < this.state.count; i++)
         this.simulationCanvasRef.current?.addBody(this.state.radius)
     })
