@@ -53,7 +53,7 @@ export default class Home extends Component<unknown, StateFields> {
             radius={this.state.radius} />
           <ControlBar>
             <SectionTitle title="Physics" />
-            <DataSlider label="Restitution Constant" value={this.state.physicsEnvironment.coefficientOfRestitution}
+            <DataSlider label="Restitution Coefficient" value={this.state.physicsEnvironment.coefficientOfRestitution}
               updateFunc={(value: number) => {
                 this.state.physicsEnvironment.updateVar({ coefficientOfRestitution: value })
                 this.setState({ physicsEnvironment: this.state.physicsEnvironment })
