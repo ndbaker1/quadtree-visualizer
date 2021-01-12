@@ -2,13 +2,15 @@ import { Component, createRef, RefObject, MouseEvent } from 'react'
 import styles from './simulation-canvas.module.scss'
 
 import { QuadNode, QuadTree } from '../utils/quadtree'
-import { Rect, CircleBody, Vector2D } from '../utils/physics'
+import { Rect } from '../utils/shapes'
+import { CircleBody } from '../utils/circlebody'
+import { Vector2D } from '../utils/vector2d'
+import { PhysicsEnvironment } from '../utils/physics'
 
 const time = () => new Date().getTime()
 
-interface SimulationCanvasProps { spawnRadius: number }
+export interface SimulationCanvasProps { radius: number, showFPS: boolean, showQuads: boolean, physicsEnvironment: PhysicsEnvironment }
 export default class SimulationCanvas extends Component<SimulationCanvasProps> {
-  public debug = { showFPS: true, showQuads: true }
   private timestamp = time()
   private dragVector = { start: new Vector2D, end: new Vector2D, isDragging: false }
   private stopLoop: boolean
@@ -27,15 +29,18 @@ export default class SimulationCanvas extends Component<SimulationCanvasProps> {
     this.mouseDrag = this.mouseDrag.bind(this)
   }
 
-  public updateVars(vars: { capacity?: number, maxDepth?: number, showFPS?: boolean, showQuads?: boolean }): void {
+  public updateVars(vars: { capacity?: number, maxDepth?: number }): void {
     if ('capacity' in vars)
       QuadTree.capacity = vars.capacity === undefined ? 1 : vars.capacity
     if ('maxDepth' in vars)
       QuadTree.maxDepth = vars.maxDepth === undefined ? 1 : vars.maxDepth
-    if ('showFPS' in vars)
-      this.debug.showFPS = !!vars.showFPS
-    if ('showQuads' in vars)
-      this.debug.showQuads = !!vars.showQuads
+  }
+
+  public randomPointsInBounds(): Vector2D {
+    return new Vector2D(
+      this.props.radius + (this.canvasBounds.w - this.props.radius) * Math.random(),
+      this.props.radius + (this.canvasBounds.h - this.props.radius) * Math.random()
+    )
   }
 
   public clearBodies(): void {
@@ -43,16 +48,8 @@ export default class SimulationCanvas extends Component<SimulationCanvasProps> {
     this.quadTree.quadObjects = this.bodies
   }
 
-  public addBody(radius: number, velocity?: Vector2D, position?: Vector2D): void {
-    this.quadTree.insert(
-      new CircleBody(
-        position?.x || radius + (this.canvasBounds.w - 2 * radius) * Math.random(),
-        position?.y || radius + (this.canvasBounds.h - 2 * radius) * Math.random(),
-        velocity?.x || 100 * (Math.random() - 0.5),
-        velocity?.y || 100 * (Math.random() - 0.5),
-        radius
-      )
-    )
+  public addBody(position: Vector2D, velocity: Vector2D, radius: number): void {
+    this.quadTree.insert(new CircleBody(position, velocity, radius, this.props.physicsEnvironment))
   }
 
   componentWillUnmount(): void {
@@ -101,7 +98,7 @@ export default class SimulationCanvas extends Component<SimulationCanvasProps> {
       canvasContext.strokeRect(quad.bounds.x, quad.bounds.y, quad.bounds.w, quad.bounds.h)
       quad.leaves?.forEach((leaf: QuadNode) => showQuadTrees(leaf))
     }
-    if (this.debug.showQuads) {
+    if (this.props.showQuads) {
       canvasContext.strokeStyle = styles.color3
       showQuadTrees(this.quadTree.quadRoot)
     }
@@ -158,7 +155,7 @@ export default class SimulationCanvas extends Component<SimulationCanvasProps> {
     if (context) {
       this.renderSimulation(context)
 
-      if (this.debug.showFPS) {
+      if (this.props.showFPS) {
         context.save()
         context.font = '25px Arial'
         context.fillStyle = styles.color4
@@ -184,7 +181,7 @@ export default class SimulationCanvas extends Component<SimulationCanvasProps> {
   }
 
   mouseUp(): void {
-    this.addBody(this.props.spawnRadius, this.dragVector.end.difference(this.dragVector.start), this.dragVector.start)
+    this.addBody(this.dragVector.start, this.dragVector.start.vectorTo(this.dragVector.end), this.props.radius)
     this.dragVector.isDragging = false
   }
 

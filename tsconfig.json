@@ -29,5 +29,6 @@
     "**/*.ts",
     "**/*.tsx",
     "env-config.js",
+    "utils",
   ]
 }

@@ -60,13 +60,15 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      > div {
-        cursor: pointer;
-        flex-grow: 1;
-        transition: background-color 0.5s ease;
-        &:hover {
-          background-color: $color2;
-        }
+      text-align: center;
+
+      .section_header {
+        margin: 0.6rem 0;
+        font-weight: bold;
+      }
+
+      .data_title {
+        font-size: 0.85rem;
       }
     }
   }

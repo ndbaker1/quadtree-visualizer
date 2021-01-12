@@ -1,5 +1,8 @@
-import { Rect } from './physics'
+import { Rect } from './shapes'
 
+/**
+ * A QuadNode object must have a way to tell if it is inside a given node's bounds
+ */
 export interface QuadObject {
   insideRect: (rect: Rect) => boolean // whether the object in fully contained within a Rect
 }
@@ -62,7 +65,7 @@ export class QuadNode {
     this.quadObjects.forEach((object: QuadObject) => {
       this.leaves?.forEach((leaf: QuadNode) => {
         if (leaf.insert(object))
-          this.quadObjects.splice(this.quadObjects.indexOf(object), 1) // remove from the 
+          this.quadObjects.splice(this.quadObjects.indexOf(object), 1) // remove from the current level
       })
     })
   }
@@ -104,7 +107,7 @@ export class QuadNode {
  * primary interface for operations
  */
 export class QuadTree {
-  static maxDepth = Math.ceil(Math.log2(1000 / 5) / 2) + 1// default for as small as 5 pixels on a 1000x1000 grid
+  static maxDepth = Math.ceil(Math.log2(1000 / 5) / 2) + 1 // default for as small as 5 pixels on a 1000x1000 grid
   static capacity = 5
   public bounds: Rect
   public quadRoot: QuadNode

@@ -1,5 +1,5 @@
 import { ChangeEvent, Component } from 'react'
-import { Button, Checkbox, FormControlLabel, TextField } from '@material-ui/core'
+import { Button, Checkbox, FormControlLabel, Slider, TextField } from '@material-ui/core'
 import EditSharpIcon from '@material-ui/icons/EditSharp'
 import NavigateBeforeSharpIcon from '@material-ui/icons/NavigateBeforeSharp'
 import styles from './control-bar.module.scss'
@@ -50,6 +50,25 @@ export default class ControlBar extends Component<unknown, ControlBarState> {
   }
 }
 
+export function SectionTitle(props: { title: string }): JSX.Element {
+  return <div className={styles.section_header}>{props.title.toUpperCase()}</div>
+}
+
+export function DataSlider(props: { value: number, updateFunc: (value: number) => void, label: string }): JSX.Element {
+  return (
+    <div>
+      <div className={styles.data_title}>Restitution Constant<br /><b>{props.value}</b></div>
+      <Slider style={{ width: '80%' }}
+        value={props.value}
+        onChange={(_, value: number | number[]) => props.updateFunc(typeof value === 'number' ? value : 0)}
+        step={0.01}
+        min={0}
+        max={1}
+      />
+    </div>
+  )
+}
+
 export function ActionButton(props: { onClick: () => void, label: string }): JSX.Element {
   return (
     <Button onClick={props.onClick} size="medium" >{props.label}</Button>
@@ -68,6 +87,6 @@ export function DataToggle(props: { value: boolean | undefined, label: string, u
   return (
     <FormControlLabel control={
       <Checkbox checked={props.value === undefined ? true : props.value} onChange={props.updateFunc} />
-    } label={props.label} />
+    } label={props.label} style={{ marginLeft: 10, marginRight: 'auto' }} />
   )
 }
