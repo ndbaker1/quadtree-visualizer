@@ -16,14 +16,11 @@ export interface QuadObject {
  *  - containing objects
  */
 export class QuadNode {
-  public bounds: Rect
   public leaves!: Array<QuadNode> | null
   public quadObjects = new Array<QuadObject>()
-  private depth: number
-  constructor(bounds: Rect, depth: number) {
-    this.bounds = bounds
-    this.depth = depth
-  }
+  constructor(
+    public bounds: Rect,
+    private depth: number) { }
 
   /**
    * cleanup references down the QuadTree recursively
@@ -109,13 +106,11 @@ export class QuadNode {
 export class QuadTree {
   static maxDepth = Math.ceil(Math.log2(1000 / 5) / 2) + 1 // default for as small as 5 pixels on a 1000x1000 grid
   static capacity = 5
-  public bounds: Rect
   public quadRoot: QuadNode
-  public quadObjects: Array<QuadObject>
-  constructor(rect: Rect, objectArray: Array<QuadObject>) {
-    this.bounds = rect
-    this.quadObjects = objectArray
-    this.quadRoot = new QuadNode(this.bounds, 0)
+  constructor(
+    public bounds: Rect,
+    public quadObjects: Array<QuadObject>) {
+    this.quadRoot = new QuadNode(bounds, 0)
   }
 
   /**

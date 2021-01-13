@@ -5,17 +5,13 @@ import { Vector2D } from './vector2d'
 
 type BoundType = 'TOP' | 'LEFT' | 'BOTTOM' | 'RIGHT' | 'INSIDE'
 export class CircleBody implements QuadObject, PhysicsBody {
-  physicsEnv = new PhysicsEnvironment
-  radius: number
   mass: number
-  position: Vector2D
-  velocity: Vector2D
-  constructor(position: Vector2D, velocity: Vector2D, radius: number, physicsEnv: PhysicsEnvironment) {
-    this.radius = radius
+  constructor(
+    public position: Vector2D,
+    public velocity: Vector2D,
+    public radius: number,
+    public physicsEnv: PhysicsEnvironment) {
     this.mass = this.radius // mass proportionate to size
-    this.position = position
-    this.velocity = velocity
-    this.physicsEnv = physicsEnv
   }
 
   tick(delta: number): void {
@@ -25,12 +21,12 @@ export class CircleBody implements QuadObject, PhysicsBody {
   collide(other: CircleBody): void {
     const collisionVector = this.position.vectorTo(other.position) // from this -> other
     const collisionDistance = this.radius + other.radius
-    if (collisionVector.sqrMagnitude() < collisionDistance * collisionDistance) {
-      // remove the touching distance
+    if (collisionVector.sqrMagnitude < collisionDistance * collisionDistance) {
+      // remove the touching distance by pushing the pushing body backwards
       const thisToOtherVec = collisionVector.normalized()
       const otherToThisVec = thisToOtherVec.reversed()
-      const thisIsFacingCollision = this.velocity.cosineAngleBetween(thisToOtherVec) >= 0
-      const otherIsFacingCollision = other.velocity.cosineAngleBetween(otherToThisVec) >= 0
+      const thisIsFacingCollision = this.velocity.cosineAngleBetween(thisToOtherVec) > 0
+      const otherIsFacingCollision = other.velocity.cosineAngleBetween(otherToThisVec) > 0
       if (thisIsFacingCollision)
         this.position = other.position.plus(otherToThisVec.scale(collisionDistance))
       else if (otherIsFacingCollision)

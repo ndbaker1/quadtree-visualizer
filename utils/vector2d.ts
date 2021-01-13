@@ -3,26 +3,38 @@
  * majority physics related
  */
 export class Vector2D {
-  x: number
-  y: number
-
-  constructor(x?: number, y?: number) {
-    this.x = x || 0
-    this.y = y || 0
-  }
+  constructor(public x: number = 0, public y: number = 0) { }
 
   /**
    * useful for avoiding the sqaure root calculation when necessary
    */
-  sqrMagnitude(): number {
+  get sqrMagnitude(): number {
     return this.x * this.x + this.y * this.y
   }
 
   /**
    * scalar length quantity of the vector 
    */
-  magnitude(): number {
+  get magnitude(): number {
     return Math.sqrt(this.x * this.x + this.y * this.y)
+  }
+
+  /**
+   * Flips the vector 180 degrees
+   */
+  reversed(): Vector2D {
+    return this.scale(-1)
+  }
+
+  /**
+   * Returns the unit vector of the current vector
+   */
+  normalized(): Vector2D {
+    const mag = this.magnitude
+    return new Vector2D(
+      this.x / mag,
+      this.y / mag
+    )
   }
 
   /**
@@ -31,7 +43,7 @@ export class Vector2D {
    * @returns cosine of the angle between the vectors
    */
   cosineAngleBetween(vector: Vector2D): number {
-    return this.dot(vector) / Math.sqrt(this.sqrMagnitude() * vector.sqrMagnitude())
+    return this.dot(vector) / Math.sqrt(this.sqrMagnitude * vector.sqrMagnitude)
   }
 
   /**
@@ -40,7 +52,7 @@ export class Vector2D {
    * @returns angle between in radians
    */
   angleBetween(vector: Vector2D): number {
-    return Math.acos(this.dot(vector) / Math.sqrt(this.sqrMagnitude() * vector.sqrMagnitude()))
+    return Math.acos(this.dot(vector) / Math.sqrt(this.sqrMagnitude * vector.sqrMagnitude))
   }
 
   /**
@@ -69,7 +81,8 @@ export class Vector2D {
   rotated(radians: number): Vector2D {
     return new Vector2D(
       this.x * Math.cos(radians) - this.y * Math.sin(radians),
-      this.x * Math.sin(radians) - this.y * Math.cos(radians))
+      this.x * Math.sin(radians) - this.y * Math.cos(radians)
+    )
   }
 
   /**
@@ -91,24 +104,6 @@ export class Vector2D {
     return new Vector2D(
       this.x * factor,
       this.y * factor
-    )
-  }
-
-  /**
-   * Flips the vector 180 degrees
-   */
-  reversed(): Vector2D {
-    return this.scale(-1)
-  }
-
-  /**
-   * Returns the unit vector of the current vector
-   */
-  normalized(): Vector2D {
-    const mag = this.magnitude()
-    return new Vector2D(
-      this.x / mag,
-      this.y / mag
     )
   }
 }

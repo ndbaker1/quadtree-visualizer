@@ -1,12 +1,8 @@
 export class Rect {
-  x: number
-  y: number
-  w: number
-  h: number
-  constructor(x?: number, y?: number, w?: number, h?: number) {
-    this.x = x || 0
-    this.y = y || 0
-    this.w = w || 0
-    this.h = h || 0
-  }
+  constructor(
+    public x: number = 0,
+    public y: number = 0,
+    public w: number = 0, // width
+    public h: number = 0 // height
+  ) { }
 }

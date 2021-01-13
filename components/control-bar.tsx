@@ -1,25 +1,22 @@
 import { ChangeEvent, Component } from 'react'
+
 import { Button, Checkbox, FormControlLabel, Slider, TextField } from '@material-ui/core'
-import EditSharpIcon from '@material-ui/icons/EditSharp'
-import NavigateBeforeSharpIcon from '@material-ui/icons/NavigateBeforeSharp'
+import { EditSharp, NavigateBeforeSharp } from '@material-ui/icons'
+
 import styles from './control-bar.module.scss'
 
-const ControlNav = (props: { hideFunc: () => void }): JSX.Element => (
-  <div id={styles.top_control}>
-    <NavigateBeforeSharpIcon style={{ fontSize: 50 }} onClick={props.hideFunc} />
-    <p>SETTINGS</p>
-  </div>
-)
-
-const UIInfo = (): JSX.Element => <div style={{ textAlign: 'center', fontSize: '0.8rem' }}><i>Click and Drag to Launch a New Body</i></div>
-
-interface ControlBarState { showing: boolean }
-
-export default class ControlBar extends Component<unknown, ControlBarState> {
+/**
+ * Component for the Navigation Tab and Menu for Controlling Varialbes
+ */
+export default class ControlBar extends Component<unknown, { showing: boolean }> {
   constructor(props: unknown) {
     super(props)
     this.state = { showing: false }
     this.handleClick = this.handleClick.bind(this)
+  }
+
+  public setShowing(show: boolean): void {
+    this.setState({ showing: show })
   }
 
   handleClick(): void {
@@ -33,7 +30,7 @@ export default class ControlBar extends Component<unknown, ControlBarState> {
           className={styles.minimized}
           style={{ transform: `translateX(${this.state.showing ? -100 : 0}%)` }}
           onClick={this.handleClick}>
-          <EditSharpIcon style={{ fontSize: 35 }} />
+          <EditSharp style={{ fontSize: 35 }} />
         </div>
         <div
           className={styles.panel}
@@ -50,10 +47,23 @@ export default class ControlBar extends Component<unknown, ControlBarState> {
   }
 }
 
+// Header of control Nav
+const ControlNav = (props: { hideFunc: () => void }): JSX.Element => (
+  <div id={styles.top_control}>
+    <NavigateBeforeSharp style={{ fontSize: 50 }} onClick={props.hideFunc} />
+    <p>SETTINGS</p>
+  </div>
+)
+
+// small text at bottom of popout
+const UIInfo = (): JSX.Element => <div style={{ textAlign: 'center', fontSize: '0.8rem' }}><i>Click and Drag to Launch a New Body</i></div>
+
+// Titles for sections of configurable variables
 export function SectionTitle(props: { title: string }): JSX.Element {
   return <div className={styles.section_header}>{props.title.toUpperCase()}</div>
 }
 
+// Slider for variables
 export function DataSlider(props: { value: number, updateFunc: (value: number) => void, label: string }): JSX.Element {
   return (
     <div>
@@ -69,12 +79,14 @@ export function DataSlider(props: { value: number, updateFunc: (value: number) =
   )
 }
 
+// button with callback
 export function ActionButton(props: { onClick: () => void, label: string }): JSX.Element {
   return (
     <Button onClick={props.onClick} size="medium" >{props.label}</Button>
   )
 }
 
+// Text-editable config variables
 export function DataConfig<T>(props: { value: T, label: string, updateFunc: (value: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => void }): JSX.Element {
   return (
     <form autoComplete="off">
@@ -83,6 +95,7 @@ export function DataConfig<T>(props: { value: T, label: string, updateFunc: (val
   )
 }
 
+// toggled config variables
 export function DataToggle(props: { value: boolean | undefined, label: string, updateFunc: (event: ChangeEvent<HTMLInputElement>, checked: boolean) => void }): JSX.Element {
   return (
     <FormControlLabel control={
