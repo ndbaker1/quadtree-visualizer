@@ -27,7 +27,8 @@ export interface PhysicsBody {
 export function compute2DCollision(
   first: PhysicsBody,
   second: PhysicsBody,
-  environment: PhysicsEnvironment): { first: Vector2D, second: Vector2D } {
+  environment: PhysicsEnvironment,
+  unitNormalofCollision?: Vector2D): { first: Vector2D, second: Vector2D } {
   /* 1D Collision
    * v = final velocity vector
    * u = initial velocty vector
@@ -45,7 +46,7 @@ export function compute2DCollision(
    */
 
   const jointMass = first.mass + second.mass
-  const unitNormalVec = first.position.vectorTo(second.position).normalized()
+  const unitNormalVec = unitNormalofCollision || first.position.vectorTo(second.position).normalized()
   const unitTangentVec = new Vector2D(-unitNormalVec.y, unitNormalVec.x)
 
   // calculate collisions in the normal plane (normal 1D collisions)
@@ -57,7 +58,7 @@ export function compute2DCollision(
     (environment.coefficientOfRestitution * second.mass * (secondNormalVel - firstNormalVel) + firstNormalMomentum + secondNormalMomentum) / jointMass
   )
   const secondNormalVec = unitNormalVec.scale(
-    (environment.coefficientOfRestitution * second.mass * (firstNormalVel - secondNormalVel) + firstNormalMomentum + secondNormalMomentum) / jointMass
+    (environment.coefficientOfRestitution * first.mass * (firstNormalVel - secondNormalVel) + firstNormalMomentum + secondNormalMomentum) / jointMass
   )
 
   // tangent plane components stay the same

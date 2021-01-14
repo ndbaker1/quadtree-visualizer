@@ -32,7 +32,7 @@ export class CircleBody implements QuadObject, PhysicsBody {
       else if (otherIsFacingCollision)
         other.position = this.position.plus(thisToOtherVec.scale(collisionDistance))
       // compute collisions
-      const resultingVelocities = compute2DCollision(this, other, this.physicsEnv)
+      const resultingVelocities = compute2DCollision(this, other, this.physicsEnv, thisToOtherVec)
       this.velocity = resultingVelocities.first
       other.velocity = resultingVelocities.second
     }
