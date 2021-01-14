@@ -1,6 +1,6 @@
 # QuadTree Collision Visualizer
 
-gh-page: https://github.com/ndbaker1/quadtree-visualizer  
+gh-page: https://ndbaker1.github.io/quadtree-visualizer/
 
 ## Development
 
