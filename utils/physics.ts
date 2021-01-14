@@ -44,27 +44,31 @@ export function compute2DCollision(
    * v2 = ————————————————————————————————————————— =  —————————————————————————————
    *                      m1 + m2                                m1 + m2
    */
-
+  // used in all computations
   const jointMass = first.mass + second.mass
+  // unit vectors of critical axis
   const unitNormalVec = unitNormalofCollision || first.position.vectorTo(second.position).normalized()
   const unitTangentVec = new Vector2D(-unitNormalVec.y, unitNormalVec.x)
-
-  // calculate collisions in the normal plane (normal 1D collisions)
+  // going to calculate collisions in the normal plane (apply normal 1D collision algo)
   const firstNormalVel = first.velocity.dot(unitNormalVec)
   const secondNormalVel = second.velocity.dot(unitNormalVec)
-  const firstNormalMomentum = firstNormalVel * first.mass
-  const secondNormalMomentum = secondNormalVel * second.mass
+  // p_total = m_1 * v_1 + m_2 * v_2 
+  const totalNormalMomentum = first.mass * firstNormalVel + second.mass * secondNormalVel
+  // v1_norm = v1 * unit_norm
   const firstNormalVec = unitNormalVec.scale(
-    (environment.coefficientOfRestitution * second.mass * (secondNormalVel - firstNormalVel) + firstNormalMomentum + secondNormalMomentum) / jointMass
+    (environment.coefficientOfRestitution * second.mass * (secondNormalVel - firstNormalVel) + totalNormalMomentum) / jointMass
   )
+  // v2_norm = v2 * unit_norm
   const secondNormalVec = unitNormalVec.scale(
-    (environment.coefficientOfRestitution * first.mass * (firstNormalVel - secondNormalVel) + firstNormalMomentum + secondNormalMomentum) / jointMass
+    (environment.coefficientOfRestitution * first.mass * (firstNormalVel - secondNormalVel) + totalNormalMomentum) / jointMass
   )
-
-  // tangent plane components stay the same
+  // tangent plane components stay the same, just in the tangent plane
+  // v_tangent = v * unit_tangent
   const firstTangentVec = unitTangentVec.scale(first.velocity.dot(unitTangentVec))
   const secondTangentVec = unitTangentVec.scale(second.velocity.dot(unitTangentVec))
 
+  // return composition of normal and tangent components
+  // vec = vec_norm + vec_tangent
   return {
     first: firstNormalVec.plus(firstTangentVec),
     second: secondNormalVec.plus(secondTangentVec)
