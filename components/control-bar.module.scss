@@ -2,7 +2,7 @@
 
 .control_bar {
   > div {
-    position: fixed;
+    position: absolute;
     top: $navPadTop;
     left: 0;
     z-index: 100;
