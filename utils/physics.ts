@@ -24,8 +24,11 @@ export interface PhysicsBody {
  * @param first the first physics body 
  * @param second the second physics body
  */
-export function compute2DCollision(first: PhysicsBody, second: PhysicsBody, environment: PhysicsEnvironment): { first: Vector2D, second: Vector2D } {
-  /**
+export function compute2DCollision(
+  first: PhysicsBody,
+  second: PhysicsBody,
+  environment: PhysicsEnvironment): { first: Vector2D, second: Vector2D } {
+  /* 1D Collision
    * v = final velocity vector
    * u = initial velocty vector
    * m = mass of body
@@ -40,17 +43,29 @@ export function compute2DCollision(first: PhysicsBody, second: PhysicsBody, envi
    * v2 = ————————————————————————————————————————— =  —————————————————————————————
    *                      m1 + m2                                m1 + m2
    */
+
   const jointMass = first.mass + second.mass
-  const momemtumBody1 = { x: first.mass * first.velocity.x, y: first.mass * first.velocity.y }
-  const momemtumBody2 = { x: second.mass * second.velocity.x, y: second.mass * second.velocity.y }
+  const unitNormalVec = first.position.vectorTo(second.position).normalized()
+  const unitTangentVec = new Vector2D(-unitNormalVec.y, unitNormalVec.x)
+
+  // calculate collisions in the normal plane (normal 1D collisions)
+  const firstNormalVel = first.velocity.dot(unitNormalVec)
+  const secondNormalVel = second.velocity.dot(unitNormalVec)
+  const firstNormalMomentum = firstNormalVel * first.mass
+  const secondNormalMomentum = secondNormalVel * second.mass
+  const firstNormalVec = unitNormalVec.scale(
+    (environment.coefficientOfRestitution * second.mass * (secondNormalVel - firstNormalVel) + firstNormalMomentum + secondNormalMomentum) / jointMass
+  )
+  const secondNormalVec = unitNormalVec.scale(
+    (environment.coefficientOfRestitution * second.mass * (firstNormalVel - secondNormalVel) + firstNormalMomentum + secondNormalMomentum) / jointMass
+  )
+
+  // tangent plane components stay the same
+  const firstTangentVec = unitTangentVec.scale(first.velocity.dot(unitTangentVec))
+  const secondTangentVec = unitTangentVec.scale(second.velocity.dot(unitTangentVec))
+
   return {
-    first: new Vector2D(
-      (environment.coefficientOfRestitution * second.mass * (second.velocity.x - first.velocity.x) + momemtumBody1.x + momemtumBody2.x),
-      (environment.coefficientOfRestitution * second.mass * (second.velocity.y - first.velocity.y) + momemtumBody1.y + momemtumBody2.y)
-    ).scale(1 / jointMass),
-    second: new Vector2D(
-      (environment.coefficientOfRestitution * first.mass * (first.velocity.x - second.velocity.x) + momemtumBody1.x + momemtumBody2.x),
-      (environment.coefficientOfRestitution * first.mass * (first.velocity.y - second.velocity.y) + momemtumBody1.y + momemtumBody2.y)
-    ).scale(1 / jointMass)
+    first: firstNormalVec.plus(firstTangentVec),
+    second: secondNormalVec.plus(secondTangentVec)
   }
 }
